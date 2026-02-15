@@ -1,0 +1,13 @@
+# Bicep build
+*.json
+!main.json
+
+# temp
+*.zip
+*.log
+*.tmp
+*.bak
+*~
+
+# VSCode
+.vscode/

@@ -1,0 +1,314 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "10671383298794036169"
+    }
+  },
+  "parameters": {
+    "peLocation": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for Private Endpoints (must match VNet/subnets region, e.g. westeurope)"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing Storage Account name"
+      }
+    },
+    "sqlServerName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing SQL Server name"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing Key Vault name"
+      }
+    },
+    "storageLocation": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": {
+        "description": "Storage Account location (e.g. westeurope)"
+      }
+    },
+    "sqlLocation": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": {
+        "description": "SQL Server location (e.g. westeurope)"
+      }
+    },
+    "keyVaultLocation": {
+      "type": "string",
+      "defaultValue": "swedencentral",
+      "metadata": {
+        "description": "Key Vault location (e.g. swedencentral)"
+      }
+    },
+    "storageKind": {
+      "type": "string",
+      "defaultValue": "StorageV2",
+      "metadata": {
+        "description": "Storage Account kind (must match existing), usually StorageV2"
+      }
+    },
+    "storageSkuName": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "metadata": {
+        "description": "Storage SKU name (must match existing), e.g. Standard_LRS / Standard_GRS / Standard_RAGRS / Standard_ZRS"
+      }
+    },
+    "storageSubnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet id for Storage Private Endpoint"
+      }
+    },
+    "sqlSubnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet id for SQL Private Endpoint"
+      }
+    },
+    "keyVaultSubnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet id for Key Vault Private Endpoint"
+      }
+    },
+    "privateDnsZoneBlobId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the Private DNS zone used for Storage Blob Private Link"
+      }
+    },
+    "privateDnsZoneSqlId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the Private DNS zone used for Azure SQL Private Link"
+      }
+    },
+    "privateDnsZoneKvId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of the Private DNS zone used for Key Vault Private Link"
+      }
+    }
+  },
+  "variables": {
+    "stgId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+    "sqlId": "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]",
+    "kvId": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('storageLocation')]",
+      "kind": "[parameters('storageKind')]",
+      "sku": {
+        "name": "[parameters('storageSkuName')]"
+      },
+      "properties": {
+        "publicNetworkAccess": "Disabled",
+        "allowBlobPublicAccess": false,
+        "networkAcls": {
+          "defaultAction": "Deny",
+          "bypass": "AzureServices",
+          "ipRules": [],
+          "virtualNetworkRules": []
+        },
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "type": "Microsoft.Sql/servers",
+      "apiVersion": "2023-05-01-preview",
+      "name": "[parameters('sqlServerName')]",
+      "location": "[parameters('sqlLocation')]",
+      "properties": {
+        "publicNetworkAccess": "Disabled"
+      }
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('keyVaultName')]",
+      "location": "[parameters('keyVaultLocation')]",
+      "properties": {
+        "tenantId": "[subscription().tenantId]",
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "enableRbacAuthorization": true,
+        "publicNetworkAccess": "Disabled",
+        "networkAcls": {
+          "defaultAction": "Deny",
+          "bypass": "AzureServices",
+          "ipRules": [],
+          "virtualNetworkRules": []
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2023-11-01",
+      "name": "[format('pe-{0}-blob', parameters('storageAccountName'))]",
+      "location": "[parameters('peLocation')]",
+      "properties": {
+        "subnet": {
+          "id": "[parameters('storageSubnetId')]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "blob-connection",
+            "properties": {
+              "privateLinkServiceId": "[variables('stgId')]",
+              "groupIds": [
+                "blob"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2023-11-01",
+      "name": "[format('{0}/{1}', format('pe-{0}-blob', parameters('storageAccountName')), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "blob",
+            "properties": {
+              "privateDnsZoneId": "[parameters('privateDnsZoneBlobId')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-blob', parameters('storageAccountName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2023-11-01",
+      "name": "[format('pe-{0}', parameters('sqlServerName'))]",
+      "location": "[parameters('peLocation')]",
+      "properties": {
+        "subnet": {
+          "id": "[parameters('sqlSubnetId')]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "sql-connection",
+            "properties": {
+              "privateLinkServiceId": "[variables('sqlId')]",
+              "groupIds": [
+                "sqlServer"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2023-11-01",
+      "name": "[format('{0}/{1}', format('pe-{0}', parameters('sqlServerName')), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "sql",
+            "properties": {
+              "privateDnsZoneId": "[parameters('privateDnsZoneSqlId')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('sqlServerName')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2023-11-01",
+      "name": "[format('pe-{0}', parameters('keyVaultName'))]",
+      "location": "[parameters('peLocation')]",
+      "properties": {
+        "subnet": {
+          "id": "[parameters('keyVaultSubnetId')]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "kv-connection",
+            "properties": {
+              "privateLinkServiceId": "[variables('kvId')]",
+              "groupIds": [
+                "vault"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2023-11-01",
+      "name": "[format('{0}/{1}', format('pe-{0}', parameters('keyVaultName')), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "kv",
+            "properties": {
+              "privateDnsZoneId": "[parameters('privateDnsZoneKvId')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('keyVaultName')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "storageId": {
+      "type": "string",
+      "value": "[variables('stgId')]"
+    },
+    "sqlServerId": {
+      "type": "string",
+      "value": "[variables('sqlId')]"
+    },
+    "keyVaultId": {
+      "type": "string",
+      "value": "[variables('kvId')]"
+    },
+    "storagePrivateEndpointId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}-blob', parameters('storageAccountName')))]"
+    },
+    "sqlPrivateEndpointId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('sqlServerName')))]"
+    },
+    "keyVaultPrivateEndpointId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/privateEndpoints', format('pe-{0}', parameters('keyVaultName')))]"
+    }
+  }
+}

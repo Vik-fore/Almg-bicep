@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "10783302234977161318"
+    }
+  },
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing Web App name"
+      }
+    },
+    "subnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet resource ID for App Service VNet Integration (delegated to Microsoft.Web/serverFarms)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/sites/networkConfig",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/{1}', parameters('webAppName'), 'virtualNetwork')]",
+      "properties": {
+        "subnetResourceId": "[parameters('subnetId')]"
+      }
+    }
+  ],
+  "outputs": {
+    "appliedSubnetId": {
+      "type": "string",
+      "value": "[parameters('subnetId')]"
+    }
+  }
+}

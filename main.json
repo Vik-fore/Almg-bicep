@@ -1,0 +1,305 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "902069050799256424"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": {
+        "description": "Location for deployment"
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "vnet-alm-chatbot-prod",
+      "metadata": {
+        "description": "VNet name"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-vnet",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetName": {
+            "value": "[parameters('vnetName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "addressSpace": {
+            "value": [
+              "10.10.0.0/16"
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "2972153163840556964"
+            }
+          },
+          "parameters": {
+            "vnetName": {
+              "type": "string",
+              "defaultValue": "vnet-alm-chatbot-prod",
+              "metadata": {
+                "description": "Name of the Virtual Network for PROD"
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "westeurope",
+              "metadata": {
+                "description": "Location of the VNet"
+              }
+            },
+            "addressSpace": {
+              "type": "array",
+              "defaultValue": [
+                "10.10.0.0/16"
+              ],
+              "metadata": {
+                "description": "Address space for the VNet"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('vnetName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": "[parameters('addressSpace')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-subnets",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "vnetName": {
+            "value": "[parameters('vnetName')]"
+          },
+          "subnetAppName": {
+            "value": "snet-app"
+          },
+          "subnetKvName": {
+            "value": "snet-pe-kv"
+          },
+          "subnetSqlName": {
+            "value": "snet-pe-sql"
+          },
+          "subnetStorageName": {
+            "value": "snet-pe-storage"
+          },
+          "subnetAppPrefix": {
+            "value": "10.10.0.0/24"
+          },
+          "subnetKvPrefix": {
+            "value": "10.10.1.0/24"
+          },
+          "subnetSqlPrefix": {
+            "value": "10.10.2.0/24"
+          },
+          "subnetStoragePrefix": {
+            "value": "10.10.3.0/24"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "7685604926445363432"
+            }
+          },
+          "parameters": {
+            "vnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the existing Virtual Network"
+              }
+            },
+            "subnetAppName": {
+              "type": "string",
+              "defaultValue": "snet-app",
+              "metadata": {
+                "description": "Subnet name for App Service Integration"
+              }
+            },
+            "subnetKvName": {
+              "type": "string",
+              "defaultValue": "snet-pe-kv",
+              "metadata": {
+                "description": "Subnet name for Key Vault Private Endpoint"
+              }
+            },
+            "subnetSqlName": {
+              "type": "string",
+              "defaultValue": "snet-pe-sql",
+              "metadata": {
+                "description": "Subnet name for SQL Private Endpoint"
+              }
+            },
+            "subnetStorageName": {
+              "type": "string",
+              "defaultValue": "snet-pe-storage",
+              "metadata": {
+                "description": "Subnet name for Storage Private Endpoint"
+              }
+            },
+            "subnetAppPrefix": {
+              "type": "string",
+              "defaultValue": "10.0.0.0/24",
+              "metadata": {
+                "description": "Address prefix for App Service subnet"
+              }
+            },
+            "subnetKvPrefix": {
+              "type": "string",
+              "defaultValue": "10.0.1.0/24",
+              "metadata": {
+                "description": "Address prefix for Key Vault PE subnet"
+              }
+            },
+            "subnetSqlPrefix": {
+              "type": "string",
+              "defaultValue": "10.0.2.0/24",
+              "metadata": {
+                "description": "Address prefix for SQL PE subnet"
+              }
+            },
+            "subnetStoragePrefix": {
+              "type": "string",
+              "defaultValue": "10.0.3.0/24",
+              "metadata": {
+                "description": "Address prefix for Storage PE subnet"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetAppName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('subnetAppPrefix')]",
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Disabled"
+              }
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetKvName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('subnetKvPrefix')]",
+                "privateEndpointNetworkPolicies": "Disabled"
+              }
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetSqlName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('subnetSqlPrefix')]",
+                "privateEndpointNetworkPolicies": "Disabled"
+              }
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks/subnets",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('vnetName'), parameters('subnetStorageName'))]",
+              "properties": {
+                "addressPrefix": "[parameters('subnetStoragePrefix')]",
+                "privateEndpointNetworkPolicies": "Disabled"
+              }
+            }
+          ],
+          "outputs": {
+            "subnetAppId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetAppName'))]"
+            },
+            "subnetKvId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetKvName'))]"
+            },
+            "subnetSqlId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetSqlName'))]"
+            },
+            "subnetStorageId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), parameters('subnetStorageName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'deploy-vnet')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "vnetId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-vnet'), '2025-04-01').outputs.vnetId.value]"
+    },
+    "subnetAppId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-subnets'), '2025-04-01').outputs.subnetAppId.value]"
+    },
+    "subnetKvId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-subnets'), '2025-04-01').outputs.subnetKvId.value]"
+    },
+    "subnetSqlId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-subnets'), '2025-04-01').outputs.subnetSqlId.value]"
+    },
+    "subnetStorageId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-subnets'), '2025-04-01').outputs.subnetStorageId.value]"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+﻿{
+  "properties": {
+    "ipSecurityRestrictions": [
+      { "name": "Allow-Dev-0", "action": "Allow", "ipAddress": "2.65.202.64/32", "priority": 100, "tag": "Default" },
+      { "name": "Allow-AzureFrontDoor-Backend", "action": "Allow", "ipAddress": "AzureFrontDoor.Backend", "priority": 200, "tag": "ServiceTag" },
+      { "name": "Deny-All", "action": "Deny", "ipAddress": "0.0.0.0/0", "priority": 1100, "tag": "Default" }
+    ]
+  }
+}

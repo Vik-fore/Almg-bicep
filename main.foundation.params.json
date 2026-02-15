@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "storageAccountName": {
+      "value": "stalmchatbotprodweu01"
+    },
+    "sqlServerName": {
+      "value": "alm-chatbot-prod-sql"
+    },
+    "keyVaultName": {
+      "value": "almega-chatbot-vault"
+    },
+    "storageLocation": {
+      "value": "westeurope"
+    },
+    "sqlLocation": {
+      "value": "westeurope"
+    },
+    "keyVaultLocation": {
+      "value": "swedencentral"
+    },
+    "storageKind": {
+      "value": "StorageV2"
+    },
+    "storageSkuName": {
+      "value": "Standard_GRS"
+    }
+  }
+}

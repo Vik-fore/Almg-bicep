@@ -1,0 +1,592 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "1295807620653545035"
+    }
+  },
+  "parameters": {
+    "workloadName": {
+      "type": "string",
+      "defaultValue": "almchatbot",
+      "metadata": {
+        "description": "Workload name (CAF-like)"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "prod",
+      "metadata": {
+        "description": "Environment name"
+      }
+    },
+    "regionShort": {
+      "type": "string",
+      "defaultValue": "weu",
+      "metadata": {
+        "description": "Region short name"
+      }
+    },
+    "appServiceHostName": {
+      "type": "string",
+      "metadata": {
+        "description": "Backend host name of App Service (without https://)"
+      }
+    }
+  },
+  "variables": {
+    "wafPolicyName": "[format('waf-{0}-{1}-{2}', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]",
+    "frontDoorProfileName": "[format('afd-{0}-{1}-{2}', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]",
+    "endpointName": "[format('ep-{0}-{1}-{2}', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]",
+    "originGroupName": "[format('og-{0}-{1}-{2}', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]",
+    "originName": "[format('orig-{0}-{1}-{2}-app', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]",
+    "routeName": "[format('rt-{0}-{1}-{2}', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]",
+    "securityPolicyName": "[format('sp-{0}-{1}-{2}', parameters('workloadName'), parameters('environment'), parameters('regionShort'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-waf",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "wafPolicyName": {
+            "value": "[variables('wafPolicyName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "10260448656036534168"
+            }
+          },
+          "parameters": {
+            "wafPolicyName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the WAF policy"
+              }
+            },
+            "mode": {
+              "type": "string",
+              "defaultValue": "Prevention",
+              "allowedValues": [
+                "Detection",
+                "Prevention"
+              ],
+              "metadata": {
+                "description": "WAF mode: Detection or Prevention"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/FrontDoorWebApplicationFirewallPolicies",
+              "apiVersion": "2020-11-01",
+              "name": "[parameters('wafPolicyName')]",
+              "location": "global",
+              "sku": {
+                "name": "Standard_AzureFrontDoor"
+              },
+              "properties": {
+                "policySettings": {
+                  "enabledState": "Enabled",
+                  "mode": "[parameters('mode')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "wafPolicyId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/FrontDoorWebApplicationFirewallPolicies', parameters('wafPolicyName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-frontdoor-profile",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "frontDoorName": {
+            "value": "[variables('frontDoorProfileName')]"
+          },
+          "location": {
+            "value": "global"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "10624097659305165893"
+            }
+          },
+          "parameters": {
+            "frontDoorName": {
+              "type": "string",
+              "defaultValue": "afd-alm-chatbot-prod",
+              "metadata": {
+                "description": "Name of the Front Door profile"
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "global",
+              "metadata": {
+                "description": "Azure region for Front Door Manager (always Global)"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('frontDoorName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard_AzureFrontDoor"
+              }
+            }
+          ],
+          "outputs": {
+            "frontDoorId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles', parameters('frontDoorName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-frontdoor-endpoint",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "frontdoorProfileName": {
+            "value": "[variables('frontDoorProfileName')]"
+          },
+          "endpointName": {
+            "value": "[variables('endpointName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "4383097669094689371"
+            }
+          },
+          "parameters": {
+            "frontdoorProfileName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Front Door profile name"
+              }
+            },
+            "endpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "AFD endpoint name"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles/afdEndpoints",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('frontdoorProfileName'), parameters('endpointName'))]",
+              "location": "global",
+              "properties": {
+                "enabledState": "Enabled"
+              }
+            }
+          ],
+          "outputs": {
+            "endpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', parameters('frontdoorProfileName'), parameters('endpointName'))]"
+            },
+            "endpointHostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Cdn/profiles/afdEndpoints', parameters('frontdoorProfileName'), parameters('endpointName')), '2023-05-01').hostName]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-frontdoor-origins",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "frontdoorProfileName": {
+            "value": "[variables('frontDoorProfileName')]"
+          },
+          "originGroupName": {
+            "value": "[variables('originGroupName')]"
+          },
+          "originName": {
+            "value": "[variables('originName')]"
+          },
+          "appServiceHostName": {
+            "value": "[parameters('appServiceHostName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "12198944799173990005"
+            }
+          },
+          "parameters": {
+            "frontdoorProfileName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Front Door profile name"
+              }
+            },
+            "originGroupName": {
+              "type": "string",
+              "defaultValue": "og-alm-chatbot-prod",
+              "metadata": {
+                "description": "Name of the origin group"
+              }
+            },
+            "originName": {
+              "type": "string",
+              "defaultValue": "orig-alm-chatbot-prod-app",
+              "metadata": {
+                "description": "Name of the origin inside the group"
+              }
+            },
+            "appServiceHostName": {
+              "type": "string",
+              "defaultValue": "alm-chatbot-prod-app.azurewebsites.net",
+              "metadata": {
+                "description": "Backend host name of App Service (without https://)"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('frontdoorProfileName'), parameters('originGroupName'))]",
+              "properties": {
+                "sessionAffinityState": "Disabled",
+                "healthProbeSettings": {
+                  "probePath": "/",
+                  "probeRequestType": "HEAD",
+                  "probeProtocol": "Https",
+                  "probeIntervalInSeconds": 120
+                },
+                "loadBalancingSettings": {
+                  "sampleSize": 4,
+                  "successfulSamplesRequired": 2,
+                  "additionalLatencyInMilliseconds": 0
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Cdn/profiles/originGroups/origins",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('frontdoorProfileName'), parameters('originGroupName'), parameters('originName'))]",
+              "properties": {
+                "hostName": "[parameters('appServiceHostName')]",
+                "enabledState": "Enabled",
+                "enforceCertificateNameCheck": true,
+                "httpPort": 80,
+                "httpsPort": 443,
+                "originHostHeader": "[parameters('appServiceHostName')]",
+                "priority": 1,
+                "weight": 1000
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', parameters('frontdoorProfileName'), parameters('originGroupName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "originGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles/originGroups', parameters('frontdoorProfileName'), parameters('originGroupName'))]"
+            },
+            "originId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles/originGroups/origins', parameters('frontdoorProfileName'), parameters('originGroupName'), parameters('originName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-frontdoor-routes",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "frontdoorProfileName": {
+            "value": "[variables('frontDoorProfileName')]"
+          },
+          "endpointName": {
+            "value": "[variables('endpointName')]"
+          },
+          "routeName": {
+            "value": "[variables('routeName')]"
+          },
+          "originGroupId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-frontdoor-origins'), '2025-04-01').outputs.originGroupId.value]"
+          },
+          "customDomainIds": {
+            "value": []
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "2896088226367711110"
+            }
+          },
+          "parameters": {
+            "frontdoorProfileName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Front Door profile name"
+              }
+            },
+            "endpointName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing endpoint name"
+              }
+            },
+            "routeName": {
+              "type": "string",
+              "defaultValue": "rt-alm-chatbot-prod",
+              "metadata": {
+                "description": "Name of the route"
+              }
+            },
+            "originGroupId": {
+              "type": "string",
+              "metadata": {
+                "description": "Origin group resource ID"
+              }
+            },
+            "customDomainIds": {
+              "type": "array",
+              "metadata": {
+                "description": "Array of custom domain resource IDs (Front Door domains)"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}/{2}', parameters('frontdoorProfileName'), parameters('endpointName'), parameters('routeName'))]",
+              "properties": {
+                "copy": [
+                  {
+                    "name": "customDomains",
+                    "count": "[length(parameters('customDomainIds'))]",
+                    "input": {
+                      "id": "[parameters('customDomainIds')[copyIndex('customDomains')]]"
+                    }
+                  }
+                ],
+                "enabledState": "Enabled",
+                "httpsRedirect": "Enabled",
+                "forwardingProtocol": "MatchRequest",
+                "supportedProtocols": [
+                  "Http",
+                  "Https"
+                ],
+                "patternsToMatch": [
+                  "/*"
+                ],
+                "originGroup": {
+                  "id": "[parameters('originGroupId')]"
+                },
+                "linkToDefaultDomain": "Enabled"
+              }
+            }
+          ],
+          "outputs": {
+            "routeId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles/afdEndpoints/routes', parameters('frontdoorProfileName'), parameters('endpointName'), parameters('routeName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'deploy-frontdoor-origins')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-frontdoor-waf-association",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "frontdoorProfileName": {
+            "value": "[variables('frontDoorProfileName')]"
+          },
+          "securityPolicyName": {
+            "value": "[variables('securityPolicyName')]"
+          },
+          "wafPolicyId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-waf'), '2025-04-01').outputs.wafPolicyId.value]"
+          },
+          "endpointId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-frontdoor-endpoint'), '2025-04-01').outputs.endpointId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "6892563488452857916"
+            }
+          },
+          "parameters": {
+            "frontdoorProfileName": {
+              "type": "string",
+              "metadata": {
+                "description": "Existing Front Door profile name"
+              }
+            },
+            "securityPolicyName": {
+              "type": "string",
+              "metadata": {
+                "description": "Security policy name"
+              }
+            },
+            "wafPolicyId": {
+              "type": "string",
+              "metadata": {
+                "description": "WAF policy resource ID (Microsoft.Network/FrontDoorWebApplicationFirewallPolicies)"
+              }
+            },
+            "endpointId": {
+              "type": "string",
+              "metadata": {
+                "description": "Front Door endpoint resource ID (Microsoft.Cdn/profiles/afdEndpoints)"
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cdn/profiles/securityPolicies",
+              "apiVersion": "2023-05-01",
+              "name": "[format('{0}/{1}', parameters('frontdoorProfileName'), parameters('securityPolicyName'))]",
+              "properties": {
+                "parameters": {
+                  "type": "WebApplicationFirewall",
+                  "wafPolicy": {
+                    "id": "[parameters('wafPolicyId')]"
+                  },
+                  "associations": [
+                    {
+                      "domains": [
+                        {
+                          "id": "[parameters('endpointId')]"
+                        }
+                      ],
+                      "patternsToMatch": [
+                        "/*"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "securityPolicyId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cdn/profiles/securityPolicies', parameters('frontdoorProfileName'), parameters('securityPolicyName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'deploy-frontdoor-endpoint')]",
+        "[resourceId('Microsoft.Resources/deployments', 'deploy-waf')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "afdProfileName": {
+      "type": "string",
+      "value": "[variables('frontDoorProfileName')]"
+    },
+    "afdEndpointHostName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-frontdoor-endpoint'), '2025-04-01').outputs.endpointHostName.value]"
+    },
+    "wafPolicyId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-waf'), '2025-04-01').outputs.wafPolicyId.value]"
+    },
+    "wafAssociationId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-frontdoor-waf-association'), '2025-04-01').outputs.securityPolicyId.value]"
+    }
+  }
+}

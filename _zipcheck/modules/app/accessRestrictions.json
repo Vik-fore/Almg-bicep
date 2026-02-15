@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "6213703136762281447"
+    }
+  },
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing Web App name"
+      }
+    },
+    "allowedDevIps": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Optional: allow developer office/VPN public IPs (CIDR). Example: [\"1.2.3.4/32\",\"5.6.7.0/24\"]"
+      }
+    },
+    "priorityBase": {
+      "type": "int",
+      "defaultValue": 100,
+      "metadata": {
+        "description": "Base priority for rules (lower = higher priority)"
+      }
+    }
+  },
+  "variables": {
+    "copy": [
+      {
+        "name": "devRules",
+        "count": "[length(parameters('allowedDevIps'))]",
+        "input": {
+          "name": "[format('Allow-Dev-{0}', copyIndex('devRules'))]",
+          "priority": "[add(parameters('priorityBase'), copyIndex('devRules'))]",
+          "action": "Allow",
+          "ipAddress": "[string(parameters('allowedDevIps')[copyIndex('devRules')])]",
+          "description": "Allow developer/VPN IP"
+        }
+      }
+    ],
+    "afdRule": [
+      {
+        "name": "Allow-AzureFrontDoor-Backend",
+        "priority": "[add(parameters('priorityBase'), 100)]",
+        "action": "Allow",
+        "ipAddress": "AzureFrontDoor.Backend",
+        "tag": "ServiceTag",
+        "description": "Allow traffic from Azure Front Door backend service tag"
+      }
+    ],
+    "denyAllRule": [
+      {
+        "name": "Deny-All",
+        "priority": "[add(parameters('priorityBase'), 1000)]",
+        "action": "Deny",
+        "ipAddress": "0.0.0.0/0",
+        "description": "Deny all other inbound traffic"
+      }
+    ],
+    "siteRules": "[concat(variables('devRules'), variables('afdRule'), variables('denyAllRule'))]",
+    "scmRules": "[concat(variables('devRules'), variables('afdRule'), variables('denyAllRule'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', parameters('webAppName'), 'web')]",
+      "properties": {
+        "ipSecurityRestrictions": "[variables('siteRules')]",
+        "scmIpSecurityRestrictions": "[variables('scmRules')]",
+        "scmIpSecurityRestrictionsUseMain": false
+      }
+    }
+  ]
+}

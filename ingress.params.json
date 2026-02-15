@@ -1,0 +1,8 @@
+﻿{
+  "appServiceHostName": { "value": "alm-chatbot-prod-app.azurewebsites.net" },
+  "customDomainIds": {
+    "value": [
+      "/subscriptions/3c3c4065-283e-4a4d-a267-eeb7fef10ca5/resourceGroups/alm-chatbot-prod/providers/Microsoft.Cdn/profiles/afd-almchatbot-prod-weu/customDomains/chat-almega-se-2585"
+    ]
+  }
+}

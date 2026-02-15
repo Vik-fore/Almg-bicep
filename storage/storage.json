@@ -1,0 +1,88 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "941469422531639994"
+    }
+  },
+  "parameters": {
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "stalmchatbotprod",
+      "metadata": {
+        "description": "Name of the Storage Account for PROD"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": {
+        "description": "Location"
+      }
+    },
+    "storageSkuName": {
+      "type": "string",
+      "defaultValue": "Standard_GRS",
+      "metadata": {
+        "description": "SKU / Replication type"
+      }
+    },
+    "allowBlobPublicAccess": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Allow public blob access?"
+      }
+    },
+    "minTlsVersion": {
+      "type": "string",
+      "defaultValue": "TLS1_2",
+      "metadata": {
+        "description": "Minimum TLS version"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('storageSkuName')]"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "[parameters('minTlsVersion')]",
+        "allowBlobPublicAccess": "[parameters('allowBlobPublicAccess')]",
+        "supportsHttpsTrafficOnly": true,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow",
+          "ipRules": [],
+          "virtualNetworkRules": []
+        },
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "storageId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+    }
+  }
+}

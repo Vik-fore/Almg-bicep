@@ -1,0 +1,37 @@
+{
+  "properties": {
+    "ipSecurityRestrictions": [
+      {
+        "name": "Allow-Dev-0",
+        "action": "Allow",
+        "ipAddress": "2.65.202.64/32",
+        "priority": 100,
+        "tag": "Default",
+        "description": "Allow dev IP"
+      },
+      {
+        "name": "Allow-AFD-Backend-FDID",
+        "action": "Allow",
+        "ipAddress": "AzureFrontDoor.Backend",
+        "priority": 200,
+        "tag": "ServiceTag",
+        "description": "Allow AFD backend + FDID",
+        "headers": {
+          "x-azure-fdid": [
+            "8d03d032-d6cc-4647-bf35-acf92b3b95bb"
+          ]
+        }
+      },
+      {
+        "name": "Deny-All",
+        "action": "Deny",
+        "ipAddress": "0.0.0.0/0",
+        "priority": 1100,
+        "tag": "Default",
+        "description": "Deny all"
+      }
+    ],
+    "scmIpSecurityRestrictionsUseMain": true,
+    "ipSecurityRestrictionsDefaultAction": "Deny"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "webAppName": {
+    "value": "alm-chatbot-prod-app-test"
+  },
+  "allowedDevIps": {
+    "value": [
+      "2.65.202.64/32"
+    ]
+  }
+}

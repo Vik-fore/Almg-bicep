@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "3658994858881505961"
+    }
+  },
+  "parameters": {
+    "wafPolicyName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the WAF policy for Azure Front Door Standard/Premium"
+      }
+    },
+    "wafSkuName": {
+      "type": "string",
+      "defaultValue": "Standard_AzureFrontDoor",
+      "allowedValues": [
+        "Standard_AzureFrontDoor",
+        "Premium_AzureFrontDoor"
+      ],
+      "metadata": {
+        "description": "Azure Front Door WAF SKU"
+      }
+    },
+    "mode": {
+      "type": "string",
+      "defaultValue": "Prevention",
+      "allowedValues": [
+        "Prevention",
+        "Detection"
+      ],
+      "metadata": {
+        "description": "WAF mode"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Cdn/cdnWebApplicationFirewallPolicies",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('wafPolicyName')]",
+      "location": "global",
+      "sku": {
+        "name": "[parameters('wafSkuName')]"
+      },
+      "properties": {
+        "policySettings": {
+          "enabledState": "Enabled",
+          "mode": "[parameters('mode')]"
+        },
+        "managedRules": {
+          "managedRuleSets": [
+            {
+              "ruleSetType": "DefaultRuleSet",
+              "ruleSetVersion": "2.1"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "wafPolicyId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Cdn/cdnWebApplicationFirewallPolicies', parameters('wafPolicyName'))]"
+    }
+  }
+}
